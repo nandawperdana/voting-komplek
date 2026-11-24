@@ -39,9 +39,15 @@
   .closedBanner p{margin:0;line-height:1.6}
 
   .card{background:#fff;border-radius:16px;padding:22px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-  .step{display:flex;align-items:flex-start;gap:12px;margin:0 0 6px}
-  .stepNum{flex:none;width:32px;height:32px;border-radius:50%;background:#1e2a78;color:#fff;font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;margin-top:2px}
-  .step h2{font-size:20px;margin:0}
+  .card h2{font-size:20px;margin:0 0 4px}
+  /* Alur dibuat step-by-step (tanpa nomor langkah) supaya pemilih
+     tidak terdistraksi: layar 1 hanya token, layar 2 baru kandidat
+     + kirim suara. Bar tipis ini penanda progres tanpa angka. */
+  .progressBar{display:flex;gap:6px;margin-bottom:20px}
+  .progressBar span{flex:1;height:6px;border-radius:999px;background:#d7dce6}
+  .progressBar span.on{background:#1e2a78}
+  .verifiedBar{background:#e6f7ec;border:1px solid #9ed6ae;border-radius:10px;padding:10px 12px;margin-bottom:16px;font-weight:700;color:#0a5c2e}
+  .linkBtn{width:auto;padding:0;border:0;background:none;color:#1e2a78;text-decoration:underline;font-size:15px;font-weight:700;cursor:pointer;margin-left:8px}
   .muted{color:#4a5568;font-size:15px}
   .note{background:#fff7d6;border:1px solid #e8c832;border-radius:10px;padding:12px;font-size:15px}
   .ok{background:#e6f7ec;border:1px solid #9ed6ae;border-radius:10px;padding:12px}
@@ -114,30 +120,35 @@
 
   <div class="card" id="voteCard">
     <div id="voteForm">
-      <div class="step"><span class="stepNum">1</span><div>
+      <div class="progressBar" id="progressBar"><span class="on"></span><span></span></div>
+
+      <!-- Layar 1: hanya token. Kandidat dan tombol kirim disembunyikan
+           sampai token terverifikasi ke backend (tombol Lanjutkan). -->
+      <div id="stepToken">
         <h2>Masukkan Token Pemilih</h2>
-        <p class="muted" style="margin:4px 0 0">Token ada di <b>undangan tertulis</b> yang dibagikan panitia ke tiap rumah (kertas, satu undangan per rumah). Satu token hanya bisa dipakai satu kali.</p>
-      </div></div>
-      <label for="token">Kode Token</label>
-      <input type="text" id="token" placeholder="Contoh: STG-001" autocomplete="off" autocapitalize="characters">
-      <p class="hint">Masukkan token Anda untuk memilih. Huruf besar/kecil tidak masalah.</p>
+        <p class="muted">Token ada di <b>undangan tertulis</b> yang dibagikan panitia ke tiap rumah (kertas, satu undangan per rumah). Satu token hanya bisa dipakai satu kali.</p>
+        <label for="token">Kode Token</label>
+        <input type="text" id="token" placeholder="Contoh: STG-001" autocomplete="off" autocapitalize="characters">
+        <p class="hint">Masukkan token Anda untuk melanjutkan. Huruf besar/kecil tidak masalah.</p>
+        <div id="tokenMsg" style="margin-top:12px"></div>
+        <button id="nextStepBtn" onclick="checkToken()" disabled style="margin-top:12px">Lanjutkan &#10148;</button>
+      </div>
 
-      <div class="step" style="margin-top:22px"><span class="stepNum">2</span><div>
+      <!-- Layar 2: kandidat + kirim suara. Muncul setelah token lolos. -->
+      <div id="stepVote" style="display:none">
+        <div class="verifiedBar">&#10003; Token terverifikasi<button type="button" class="linkBtn" onclick="changeToken()">Ganti token</button></div>
         <h2>Pilih Kandidat</h2>
-        <p class="muted" style="margin:4px 0 0">Ketuk salah satu kartu di bawah ini untuk memilih. Anda hanya bisa memilih <b>satu</b> kandidat.</p>
-      </div></div>
-      <div class="candGrid" id="candGrid"></div>
-
-      <div class="step" style="margin-top:6px"><span class="stepNum">3</span><div>
-        <h2>Kirim Suara</h2>
-        <p class="muted" style="margin:4px 0 0">Periksa lagi pilihan Anda, lalu tekan tombol di bawah ini. Suara tidak bisa diubah setelah dikirim. Tombol aktif setelah token diisi dan kandidat dipilih.</p>
-      </div></div>
-      <button id="voteBtn" onclick="submitVote()" disabled>&#10148; KIRIM SUARA</button>
-      <div class="confirmBox" id="confirmBox">
-        <p id="confirmText"></p>
-        <div class="btnRow">
-          <button id="confirmYesBtn" onclick="confirmVote()">Ya, Kirim Suara</button>
-          <button class="btnSecondary" onclick="cancelConfirm()">Batal / Ubah Pilihan</button>
+        <p class="muted">Ketuk salah satu kartu di bawah ini untuk memilih. Anda hanya bisa memilih <b>satu</b> kandidat.</p>
+        <div class="candGrid" id="candGrid"></div>
+        <h2 style="margin-top:6px">Kirim Suara</h2>
+        <p class="muted">Periksa lagi pilihan Anda, lalu tekan tombol di bawah ini. Suara tidak bisa diubah setelah dikirim. Tombol aktif setelah kandidat dipilih.</p>
+        <button id="voteBtn" onclick="submitVote()" disabled>&#10148; KIRIM SUARA</button>
+        <div class="confirmBox" id="confirmBox">
+          <p id="confirmText"></p>
+          <div class="btnRow">
+            <button id="confirmYesBtn" onclick="confirmVote()">Ya, Kirim Suara</button>
+            <button class="btnSecondary" onclick="cancelConfirm()">Batal / Ubah Pilihan</button>
+          </div>
         </div>
       </div>
     </div>
@@ -204,7 +215,91 @@ function updateSendBtn(){
   const chosen = document.querySelector('input[name="cand"]:checked');
   document.getElementById('voteBtn').disabled = !(token && chosen);
 }
-document.getElementById('token').addEventListener('input', updateSendBtn);
+
+// Alur step-by-step: layar 1 (token) -> layar 2 (kandidat + kirim).
+// Tombol Lanjutkan hanya aktif kalau token sudah diisi; Enter di
+// kolom token juga memicu pemeriksaan token.
+function updateNextBtn(){
+  document.getElementById('nextStepBtn').disabled = !document.getElementById('token').value.trim();
+}
+document.getElementById('token').addEventListener('input', updateNextBtn);
+document.getElementById('token').addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){ e.preventDefault(); checkToken(); }
+});
+
+let verifiedToken = '';
+function showStep(n){
+  document.getElementById('stepToken').style.display = n === 1 ? 'block' : 'none';
+  document.getElementById('stepVote').style.display = n === 2 ? 'block' : 'none';
+  const segs = document.querySelectorAll('#progressBar span');
+  segs[0].classList.add('on');
+  segs[1].classList.toggle('on', n === 2);
+}
+
+// Periksa token ke backend (?action=check) sebelum menampilkan
+// kandidat. Token salah / sudah dipakai / voting ditutup -> tetap
+// di layar 1 dengan pesan error. Kalau backend tidak menjawab
+// dengan {ok:true, valid:true} — termasuk backend lama yang belum
+// punya endpoint check — jangan loloskan ke layar 2.
+// Mode demo (tanpa backend): token apa pun yang belum dipakai di
+// perangkat ini dianggap lolos.
+async function checkToken(){
+  const tokenInput = document.getElementById('token');
+  const token = tokenInput.value.trim().toUpperCase();
+  if(!token) return;
+  const btn = document.getElementById('nextStepBtn');
+  const msgEl = document.getElementById('tokenMsg');
+  msgEl.innerHTML = '';
+  btn.disabled = true; btn.textContent = 'Memeriksa...';
+  tokenInput.disabled = true;
+  try{
+    if(!BACKEND_URL){
+      const used = JSON.parse(localStorage.getItem('rw_used')||'[]');
+      if(used.includes(token)){
+        msgEl.innerHTML = '<div class="err">Kode ini sudah dipakai di perangkat ini (mode demo).</div>';
+      } else {
+        verifiedToken = token;
+        showStep(2);
+      }
+    } else {
+      const r = await fetch(BACKEND_URL + '?action=check&token=' + encodeURIComponent(token));
+      const j = await r.json();
+      if(j.ok && j.valid){
+        verifiedToken = token;
+        showStep(2);
+      } else if(j.error==='voting_closed'){
+        showClosed();
+      } else if(j.error==='already_voted'){
+        msgEl.innerHTML = '<div class="err">Kode ini sudah dipakai untuk memilih. Satu rumah satu suara.</div>';
+      } else if(j.error==='invalid_token'){
+        msgEl.innerHTML = '<div class="err">Kode token tidak ditemukan. Periksa lagi kode dari panitia.</div>';
+      } else {
+        msgEl.innerHTML = '<div class="err">Tidak bisa memeriksa token. Coba lagi beberapa saat.</div>';
+      }
+    }
+  }catch(e){
+    msgEl.innerHTML = '<div class="err">Gagal terhubung ke server. Coba lagi beberapa saat.</div>';
+  }
+  btn.disabled = false; btn.textContent = 'Lanjutkan \u27A4';
+  tokenInput.disabled = false;
+  updateNextBtn();
+  if(document.getElementById('stepVote').style.display === 'block'){
+    document.getElementById('stepVote').scrollIntoView({behavior:'smooth', block:'start'});
+  } else {
+    tokenInput.focus();
+  }
+}
+
+// Balik ke layar 1 untuk ganti token. Pilihan kandidat yang sudah
+// dipilih dipertahankan, jadi kalau tokennya ternyata salah ketik,
+// pemilih tidak perlu memilih ulang setelah token diperbaiki.
+function changeToken(){
+  document.getElementById('confirmBox').style.display = 'none';
+  document.getElementById('msg').innerHTML = '';
+  showStep(1);
+  updateNextBtn();
+  document.getElementById('token').focus();
+}
 
 function selectCandidate(id){
   document.querySelectorAll('.cand').forEach(function(el){
@@ -287,6 +382,9 @@ function setConfirmLock(locked){
 function resetForNextVoter(){
   setConfirmLock(false);
   document.getElementById('voteForm').style.display = 'block';
+  verifiedToken = '';
+  document.getElementById('tokenMsg').innerHTML = '';
+  showStep(1);
   document.getElementById('token').value = '';
   document.querySelectorAll('input[name="cand"]').forEach(function(r){ r.checked = false; });
   document.querySelectorAll('.cand').forEach(function(c){
@@ -300,6 +398,7 @@ function resetForNextVoter(){
   hideBanner();
   setFormEnabled(true);
   updateSendBtn();
+  updateNextBtn();
   document.getElementById('token').focus();
 }
 

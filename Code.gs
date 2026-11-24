@@ -54,14 +54,39 @@ function setup() {
 }
 
 // GET ?action=status -> {ok:true, status:"Berjalan"|"Ditutup"}
+// GET ?action=check&token=STG-001 -> {ok:true, valid:true} kalau token
+// ada dan belum dipakai; {ok:false, error:'invalid_token' |
+// 'already_voted' | 'voting_closed'} kalau tidak. Dipakai halaman
+// untuk menampilkan kandidat hanya setelah token terverifikasi.
 // GET ?action=results -> hanya rekap jumlah, tanpa identitas pemilih.
 // Dikunci selama voting berjalan (RESULTS_PUBLIC = false), dan
 // otomatis terbuka begitu status di sheet "Status" jadi "Ditutup".
+function checkToken(ss, token) {
+  token = String(token || '').trim().toUpperCase();
+  if (!token) return json({ ok: false, error: 'invalid_token' });
+  if (getStatus(ss) === 'Ditutup') return json({ ok: false, error: 'voting_closed' });
+  const t = ss.getSheetByName(TOKEN_SHEET);
+  if (!t) return json({ ok: false, error: 'token_sheet_missing' });
+  const rows = t.getDataRange().getValues();
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim().toUpperCase() === token) {
+      if (String(rows[i][2]).toUpperCase() === 'YA') {
+        return json({ ok: false, error: 'already_voted' });
+      }
+      return json({ ok: true, valid: true });
+    }
+  }
+  return json({ ok: false, error: 'invalid_token' });
+}
+
 function doGet(e) {
   const action = e && e.parameter ? e.parameter.action : '';
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   if (action === 'status') {
     return json({ ok: true, status: getStatus(ss) });
+  }
+  if (action === 'check') {
+    return checkToken(ss, e.parameter.token);
   }
   if (action === 'results') {
     if (!RESULTS_PUBLIC && getStatus(ss) !== 'Ditutup') {

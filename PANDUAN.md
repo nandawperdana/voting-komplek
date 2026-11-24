@@ -60,20 +60,30 @@ Panitia memantau dari Sheet.
    "Versi staging" di bawah. Halaman ini TIDAK menampilkan hasil
    sementara, jadi aman dibuka di depan pemilih.
 8. **Uji dulu dengan 2–3 token dummy** sebelum hari voting:
-   voting sekali (harus sukses), voting lagi dengan token yang
-   sama (harus ditolak "sudah dipakai"), dan voting dengan token
-   salah (harus ditolak "tidak ditemukan"). Setelah tiap uji,
-   tekan tombol "Pemilih Berikutnya — Bersihkan Layar".
+   - Token salah di layar 1 lalu tekan "Lanjutkan" (harus ditolak
+     "tidak ditemukan", kandidat TIDAK tampil).
+   - Voting sekali dengan token benar (harus sukses), voting lagi
+     dengan token yang sama (harus ditolak "sudah dipakai" —
+     di layar 1 saat tekan "Lanjutkan").
+   Setelah tiap uji, tekan tombol "Pemilih Berikutnya — Bersihkan
+   Layar".
 
 ## Versi staging
 
-- Versi staging = halaman yang sama (`index.html`) dalam mode demo
-  (`BACKEND_URL` kosong), di-host di URL publik untuk testing
-  panitia. Suara di staging hanya tersimpan di perangkat yang
-  dipakai testing, tidak masuk ke Sheet.
+- Versi staging = halaman yang sama (`index.html`) tapi
+  `BACKEND_URL`-nya diarahkan ke backend staging (Sheet "Voting
+  Ketua RW — Staging", token STG-001–STG-010), di-host di URL
+  publik untuk testing panitia. Suara di staging masuk ke Sheet
+  staging, bukan Sheet produksi.
+- **Setiap kali `Code.gs` berubah (misal endpoint baru
+  `?action=check` untuk verifikasi token), backend staging harus
+  di-deploy ulang** — di Apps Script Deploy → Manage deployments →
+  edit deployment → Version: New version → Deploy. URL Web App
+  tetap sama. Kalau tidak, halaman staging tetap memakai backend
+  lama dan tombol "Lanjutkan" akan gagal memeriksa token.
 - Jangan pakai URL staging untuk voting asli — voting asli harus
-  pakai halaman dengan `BACKEND_URL` terisi (langkah 6) di perangkat
-  bilik suara.
+  pakai halaman dengan `BACKEND_URL` produksi (langkah 6) di
+  perangkat bilik suara.
 
 ## Ganti / tambah kandidat (maksimal 5)
 
@@ -84,28 +94,42 @@ Panitia memantau dari Sheet.
   (2027–2032) dan footer juga dari contoh itu — sesuaikan kalau
   RW / kelurahan / periodenya berbeda.
 - Di `index.html`: tambah / ubah 1 entri di array `CANDIDATES`
-  di `<script>` (nama, inisial, warna, visi, misi). Kartu kandidat
-  dibuat otomatis dari array itu; grid-nya 1 kolom di HP, 2 di
-  tablet, 3 di desktop. **Maksimal 5 kandidat** supaya halaman
-  tetap terbaca dan kandidat bawah tidak terlewat.
+  di `<script>` (nama, inisial, warna, foto, visi, misi). Kartu
+  kandidat dibuat otomatis dari array itu; layout-nya flex-wrap
+  supaya kartu selalu mengisi lebar penuh berapapun jumlahnya.
+  **Maksimal 5 kandidat** supaya halaman tetap terbaca dan
+  kandidat bawah tidak terlewat.
 - Di `Code.gs`: samakan ID-nya di array `CANDIDATES` (misal tambah
   `'3'` kalau kandidat ke-3 ditambahkan). Halaman hanya mengirim
   ID kandidat; `Hasil_Suara` menyimpan ID itu saja.
-- Foto: kartu saat ini memakai lingkaran inisial. Kalau panitia
-  punya foto resmi kandidat, ganti lingkaran itu dengan `<img>`
+- Foto: kartu saat ini memakai foto dummy. Kalau panitia punya
+  foto resmi kandidat, ganti field `photo` di array `CANDIDATES`
   (rasio 1:1, ukuran sama untuk semua kandidat) dan minta izin
   pemakaian fotonya ke kandidat.
 
 ## Di hari voting (bilik suara)
 
+Halaman voting berjalan step-by-step (tanpa nomor langkah) supaya
+pemilih tidak terdistraksi — satu layar, satu keputusan:
+
 1. Pemilih datang membawa undangan tertulis (kertas) berisi token
    rumahnya.
-2. Panitia / pemilih memasukkan token di perangkat bilik suara,
-   memilih kandidat, tekan "Kirim Suara".
-3. **Setelah tiap pemilih selesai, tekan "Pemilih Berikutnya —
+2. **Layar 1 — token:** pemilih memasukkan token di perangkat
+   bilik suara, lalu tekan "Lanjutkan". Token dicek ke Sheet
+   (`?action=check`): kalau token tidak ditemukan atau sudah
+   dipakai, pemilih tetap di layar ini dengan pesan error dan
+   kandidat tidak ditampilkan. Tombol "Lanjutkan" baru aktif
+   setelah token diisi.
+3. **Layar 2 — kandidat + kirim:** setelah token terverifikasi,
+   kartu kandidat muncul. Pemilih memilih satu kandidat, lalu
+   tekan "Kirim Suara" (tombol baru aktif setelah kandidat
+   dipilih), konfirmasi, selesai. Kalau tokennya salah ketik,
+   tekan "Ganti token" untuk balik ke layar 1 — pilihan kandidat
+   tetap tersimpan.
+4. **Setelah tiap pemilih selesai, tekan "Pemilih Berikutnya —
    Bersihkan Layar"** supaya token dan pilihan pemilih sebelumnya
-   tidak terlihat pemilih berikutnya. Ini penting karena perangkatnya
-   dipakai bergantian.
+   tidak terlihat pemilih berikutnya dan halaman kembali ke layar
+   1. Ini penting karena perangkatnya dipakai bergantian.
 4. Jangan membuka hasil sementara selama voting berjalan — halaman
    voting memang tidak menampilkannya, dan endpoint hasil di backend
    dikunci (`RESULTS_PUBLIC = false` di `Code.gs`).
