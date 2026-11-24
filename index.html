@@ -59,13 +59,20 @@
   .hint{font-size:14px;color:#4a5568;margin-top:6px}
 
   /* Kartu kandidat pakai flex-wrap supaya SELALU memenuhi lebar,
-     berapapun jumlah kandidatnya: 1 kandidat = selebar penuh,
-     2 kandidat = setengah-setengah, 5 kandidat = 3 di baris
-     pertama + 2 kartu di baris kedua yang melebar memenuhi lebar.
-     Maksimal 5 kandidat supaya tetap terbaca. */
+     berapapun jumlah kandidatnya. Di layar laptop (lebar 1024px
+     ke atas) semua kandidat dipaksa SATU BARIS: tiap kartu flex
+     1 1 0 sehingga lebarnya dibagi rata (2 kandidat = setengah-
+     setengah, 5 kandidat = seperlima-seperlima). Di bawah 1024px
+     kartu boleh membungkus ke baris berikut supaya tidak terlalu
+     sempit. Maksimal 5 kandidat supaya tetap terbaca. */
   .candGrid{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0}
   .cand{flex:1 1 100%;border:3px solid #d7dce6;border-radius:16px;padding:20px 16px;cursor:pointer;text-align:center;background:#fff;display:flex;flex-direction:column}
   @media (min-width:560px){ .cand{flex:1 1 240px} }
+  @media (min-width:1024px){
+    .cand{flex:1 1 0;min-width:0;padding:16px 12px}
+    .avatar{width:88px;height:88px;font-size:36px}
+    .pickBtn{font-size:15px}
+  }
   .cand.selected{border-color:#0a7a42;background:#eefaf3}
   .cand input[type=radio]{position:absolute;opacity:0;pointer-events:none}
   .avatar{width:96px;height:96px;border-radius:50%;color:#fff;font-size:40px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;position:relative;overflow:hidden}
