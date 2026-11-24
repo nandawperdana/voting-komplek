@@ -32,6 +32,8 @@
   .btnRow{display:flex;gap:10px}
   .btnRow button{flex:1}
   .btnSecondary{background:#666}
+  #voteForm.locked .cand{pointer-events:none;opacity:.65}
+  #voteForm.locked input[type=text]{background:#eee}
 </style>
 </head>
 <body>
@@ -158,7 +160,21 @@ function setFormEnabled(enabled){
   document.getElementById('voteBtn').disabled = !enabled;
 }
 
+// Selama kotak konfirmasi tampil, form dikunci: token dan kandidat
+// tidak bisa diubah, supaya pilihan yang tertulis di konfirmasi
+// pasti sama dengan yang dikirim. Pilihan yang dikonfirmasi
+// disimpan di pendingChoice dan itulah yang dikirim confirmVote(),
+// bukan membaca ulang radio yang (seandainya) berubah.
+let pendingChoice = null;
+function setConfirmLock(locked){
+  document.getElementById('voteForm').classList.toggle('locked', locked);
+  document.getElementById('token').disabled = locked;
+  document.querySelectorAll('input[name="cand"]').forEach(r=>{ r.disabled = locked; });
+  if(!locked) pendingChoice = null;
+}
+
 function resetForNextVoter(){
+  setConfirmLock(false);
   document.getElementById('voteForm').style.display = 'block';
   document.getElementById('token').value = '';
   document.querySelectorAll('input[name="cand"]').forEach(r=>{ r.checked = false; });
@@ -173,29 +189,38 @@ function resetForNextVoter(){
 }
 
 function submitVote(){
+  // Tiap klik Kirim Suara mulai dari bersih: error lama dihapus dulu,
+  // supaya pesan yang tampil sesudahnya selalu hasil percobaan ini,
+  // bukan sisa percobaan sebelumnya.
+  document.getElementById('msg').innerHTML = '';
   const token = document.getElementById('token').value.trim().toUpperCase();
   const chosen = document.querySelector('input[name="cand"]:checked');
   if(!token){ showMsg('Masukkan kode token rumah dulu.', 'err'); return; }
   if(!chosen){ showMsg('Pilih satu kandidat dulu.', 'err'); return; }
   // Konfirmasi inline, bukan alert/confirm bawaan browser.
+  // Kunci form selama konfirmasi tampil dan bekukan pilihannya.
+  pendingChoice = chosen.value;
   document.getElementById('confirmText').innerHTML =
-    'Anda memilih <b>'+CANDIDATES[chosen.value]+'</b>.<br>Suara tidak bisa diubah setelah dikirim. Yakin kirim suara ini?';
+    'Anda memilih <b>'+CANDIDATES[pendingChoice]+'</b>.<br>Suara tidak bisa diubah setelah dikirim. Yakin kirim suara ini?';
   document.getElementById('confirmBox').style.display = 'block';
   document.getElementById('voteBtn').style.display = 'none';
+  setConfirmLock(true);
   document.getElementById('confirmBox').scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
 function cancelConfirm(){
   document.getElementById('confirmBox').style.display = 'none';
   document.getElementById('voteBtn').style.display = 'block';
+  setConfirmLock(false);
 }
 
 async function confirmVote(){
   const token = document.getElementById('token').value.trim().toUpperCase();
-  const chosen = document.querySelector('input[name="cand"]:checked');
+  const chosen = pendingChoice;
   if(!token || !chosen){ cancelConfirm(); return; }
   document.getElementById('confirmBox').style.display = 'none';
   const btn = document.getElementById('voteBtn'); btn.style.display = 'block'; btn.disabled = true; btn.textContent = 'Mengirim...';
+  let succeeded = false;
   try{
     if(!BACKEND_URL){
       const used = JSON.parse(localStorage.getItem('rw_used')||'[]');
@@ -203,16 +228,18 @@ async function confirmVote(){
       else{
         used.push(token); localStorage.setItem('rw_used', JSON.stringify(used));
         showMsg('<b>Suara tercatat (mode demo).</b> Terima kasih, suara Anda sudah dicatat di perangkat ini.', 'ok');
+        succeeded = true;
         document.getElementById('voteForm').style.display = 'none';
         showBanner();
         setFormEnabled(false);
         document.getElementById('nextBtn').style.display = 'block';
       }
     } else {
-      const r = await fetch(BACKEND_URL, {method:'POST', body: JSON.stringify({token: token, choice: chosen.value})});
+      const r = await fetch(BACKEND_URL, {method:'POST', body: JSON.stringify({token: token, choice: chosen})});
       const j = await r.json();
       if(j.ok){
         showMsg('<b>Suara tercatat.</b> Terima kasih, pilihan Anda sudah diterima panitia.', 'ok');
+        succeeded = true;
         document.getElementById('voteForm').style.display = 'none';
         showBanner();
         setFormEnabled(false);
@@ -231,6 +258,9 @@ async function confirmVote(){
   }catch(e){
     showMsg('Gagal terhubung ke server. Coba lagi beberapa saat.', 'err');
   }
+  // Kalau gagal, buka lagi kuncinya supaya pemilih bisa perbaiki
+  // token / pilihan. Kalau berhasil, form sudah disembunyikan.
+  if(!succeeded) setConfirmLock(false);
   btn.disabled = false; btn.textContent = 'Kirim Suara';
 }
 </script>
