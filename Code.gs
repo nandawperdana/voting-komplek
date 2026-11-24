@@ -11,7 +11,20 @@
 
 const TOKEN_SHEET = 'Daftar_Token';
 const RESULT_SHEET = 'Hasil_Suara';
+const STATUS_SHEET = 'Status'; // A1: header "Status", A2: "Berjalan" atau "Ditutup"
 const CANDIDATES = ['1', '2', '3']; // 1=Budi Santoso (Dummy), 2=Siti Rahma (Dummy), 3=Ahmad Fauzi (Dummy)
+
+// Status voting, dibaca dari sheet "Status" (A2).
+// Panitia menutup voting dengan mengubah A2 jadi "Ditutup" —
+// setelah itu doPost menolak suara baru (voting_closed) dan
+// ?action=results terbuka. Sheet lama tanpa tab Status dianggap
+// "Berjalan" supaya tetap jalan.
+function getStatus(ss) {
+  const s = ss.getSheetByName(STATUS_SHEET);
+  if (!s) return 'Berjalan';
+  const v = String(s.getRange('A2').getValue() || '').trim();
+  return v === 'Ditutup' ? 'Ditutup' : 'Berjalan';
+}
 
 // Ketentuan 2026-11-24: hasil sementara TIDAK boleh dilihat warga
 // selama voting berjalan. Biarkan false selama voting; panitia boleh
@@ -28,17 +41,29 @@ function setup() {
   let r = ss.getSheetByName(RESULT_SHEET);
   if (!r) r = ss.insertSheet(RESULT_SHEET);
   if (r.getLastRow() === 0) r.appendRow(['Waktu', 'Pilihan']);
+  let s = ss.getSheetByName(STATUS_SHEET);
+  if (!s) s = ss.insertSheet(STATUS_SHEET);
+  if (s.getLastRow() === 0) s.appendRow(['Status', 'Keterangan']);
+  if (!String(s.getRange('A2').getValue() || '').trim()) {
+    s.getRange('A2').setValue('Berjalan');
+    s.getRange('B2').setValue('Ubah A2 jadi "Ditutup" untuk menutup voting.');
+  }
 }
 
+// GET ?action=status -> {ok:true, status:"Berjalan"|"Ditutup"}
 // GET ?action=results -> hanya rekap jumlah, tanpa identitas pemilih.
-// Dikunci selama voting berjalan (RESULTS_PUBLIC = false).
+// Dikunci selama voting berjalan (RESULTS_PUBLIC = false), dan
+// otomatis terbuka begitu status di sheet "Status" jadi "Ditutup".
 function doGet(e) {
   const action = e && e.parameter ? e.parameter.action : '';
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (action === 'status') {
+    return json({ ok: true, status: getStatus(ss) });
+  }
   if (action === 'results') {
-    if (!RESULTS_PUBLIC) {
+    if (!RESULTS_PUBLIC && getStatus(ss) !== 'Ditutup') {
       return json({ ok: false, error: 'results_hidden_until_closed' });
     }
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
     const r = ss.getSheetByName(RESULT_SHEET);
     const tally = { '1': 0, '2': 0, '3': 0 };
     if (r && r.getLastRow() > 1) {
@@ -72,6 +97,9 @@ function doPost(e) {
       return json({ ok: false, error: 'invalid_input' });
     }
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (getStatus(ss) === 'Ditutup') {
+      return json({ ok: false, error: 'voting_closed' });
+    }
     const t = ss.getSheetByName(TOKEN_SHEET);
     if (!t) return json({ ok: false, error: 'token_sheet_missing' });
 

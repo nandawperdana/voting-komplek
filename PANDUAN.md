@@ -107,11 +107,16 @@ Panitia memantau dari Sheet.
   dikunci selama voting (`RESULTS_PUBLIC = false`); kalau mau
   membukanya setelah ditutup, ubah ke `true` di `Code.gs` lalu
   deploy ulang — atau cukup baca langsung dari sheet.
-- **Menutup voting:** setelah waktu voting habis, tutup bilik suara
-  dan jangan lagi menerima pemilih. Rekap final diambil dari sheet
-  `Hasil_Suara`. Kalau mau menghentikan backend sepenuhnya, di Apps
-  Script Deploy → Manage deployments → hapus/nonaktifkan
-  deployment-nya.
+- **Menutup voting:** setelah waktu voting habis, buka Sheet lalu
+  di tab `Status` ubah sel A2 dari `Berjalan` jadi `Ditutup`.
+  Itu saja — halaman voting otomatis menampilkan "Voting sudah
+  ditutup" dan tidak bisa lagi menerima suara (backend menolak
+  kirim suara baru dengan `voting_closed`), dan endpoint
+  `?action=results` otomatis terbuka. Rekap final diambil dari
+  sheet `Hasil_Suara`. Kalau mau menghentikan backend sepenuhnya,
+  di Apps Script Deploy → Manage deployments → hapus/nonaktifkan
+  deployment-nya. Untuk membuka lagi (misal salah tutup), ubah A2
+  kembali jadi `Berjalan` dan refresh halaman voting.
 
 ## Hal yang harus disepakati panitia sebelum voting asli
 

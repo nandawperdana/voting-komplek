@@ -24,6 +24,9 @@
   .banner{display:none;background:#0a7a42;color:#fff;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.15)}
   .banner b{font-size:20px;display:block;margin-bottom:6px}
   .banner p{margin:0;line-height:1.6}
+  .closedBanner{display:none;background:#444;color:#fff;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+  .closedBanner b{font-size:20px;display:block;margin-bottom:6px}
+  .closedBanner p{margin:0;line-height:1.6}
   .confirmBox{display:none;background:#fff7d6;border:2px solid #e8c832;border-radius:10px;padding:16px;margin-top:12px}
   .confirmBox p{margin:0 0 12px;line-height:1.6}
   .btnRow{display:flex;gap:10px}
@@ -36,6 +39,11 @@
 <div class="banner" id="doneBanner">
   <b>&#10003; Suara Anda sudah tercatat</b>
   <p>Terima kasih, Anda sudah selesai memilih. Serahkan perangkat ke panitia, atau tekan "Pemilih Berikutnya" di bawah untuk pemilih selanjutnya.</p>
+</div>
+
+<div class="closedBanner" id="closedBanner">
+  <b>Voting sudah ditutup</b>
+  <p>Terima kasih atas partisipasi Anda. Voting Ketua RW sudah ditutup oleh panitia, jadi suara baru tidak bisa lagi dikirim.</p>
 </div>
 
 <div class="card">
@@ -127,6 +135,23 @@ function showBanner(){
 function hideBanner(){
   document.getElementById('doneBanner').style.display = 'none';
 }
+// Voting ditutup: sembunyikan form, tampilkan banner penutup.
+// Dipanggil saat halaman dimuat (cek status ke backend) dan saat
+// backend menolak kirim suara karena voting_closed.
+function showClosed(){
+  document.getElementById('voteForm').style.display = 'none';
+  document.getElementById('closedBanner').style.display = 'block';
+  document.getElementById('closedBanner').scrollIntoView({behavior:'smooth', block:'start'});
+}
+async function checkStatus(){
+  if(!BACKEND_URL) return;
+  try{
+    const r = await fetch(BACKEND_URL + '?action=status');
+    const j = await r.json();
+    if(j.status === 'Ditutup') showClosed();
+  }catch(e){ /* backend tidak terjangkau: biarkan form tetap tampil */ }
+}
+checkStatus();
 function setFormEnabled(enabled){
   document.getElementById('token').disabled = !enabled;
   document.querySelectorAll('input[name="cand"]').forEach(r=>{ r.disabled = !enabled; });
@@ -192,6 +217,9 @@ async function confirmVote(){
         showBanner();
         setFormEnabled(false);
         document.getElementById('nextBtn').style.display = 'block';
+      } else if(j.error==='voting_closed'){
+        showMsg('Voting sudah ditutup oleh panitia, suara tidak bisa lagi dikirim.', 'err');
+        showClosed();
       } else if(j.error==='already_voted'){
         showMsg('Kode ini sudah dipakai untuk memilih. Satu rumah satu suara.', 'err');
       } else if(j.error==='invalid_token'){
