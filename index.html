@@ -64,6 +64,9 @@
   .visiMisi b:first-child{margin-top:0}
   .picked{display:none;margin-top:14px;background:#0a7a42;color:#fff;font-weight:800;border-radius:999px;padding:8px 14px;font-size:15px}
   .cand.selected .picked{display:inline-block}
+  /* Kartu yang terpilih cukup menampilkan badge "Dipilih" saja —
+     tombol "Pilih ..." disembunyikan supaya tidak dobel. */
+  .cand.selected .pickBtn{display:none}
   .pickBtn{margin-top:14px;width:100%;padding:12px;border:0;border-radius:999px;background:#1e2a78;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
   .cand.selected .pickBtn{background:#0a7a42}
 
