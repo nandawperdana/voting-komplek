@@ -21,9 +21,22 @@
   .bar{height:12px;background:#eee;border-radius:6px;overflow:hidden;margin:6px 0 14px}
   .bar div{height:100%;background:#0a7a42}
   .muted{color:#666;font-size:14px}
+  .banner{display:none;background:#0a7a42;color:#fff;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+  .banner b{font-size:20px;display:block;margin-bottom:6px}
+  .banner p{margin:0;line-height:1.6}
+  .confirmBox{display:none;background:#fff7d6;border:2px solid #e8c832;border-radius:10px;padding:16px;margin-top:12px}
+  .confirmBox p{margin:0 0 12px;line-height:1.6}
+  .btnRow{display:flex;gap:10px}
+  .btnRow button{flex:1}
+  .btnSecondary{background:#666}
 </style>
 </head>
 <body>
+
+<div class="banner" id="doneBanner">
+  <b>&#10003; Suara Anda sudah tercatat</b>
+  <p>Terima kasih, Anda sudah selesai memilih. Serahkan perangkat ke panitia, atau tekan "Pemilih Berikutnya" di bawah untuk pemilih selanjutnya.</p>
+</div>
 
 <div class="card">
   <h1>Pemilihan Ketua RW</h1>
@@ -45,6 +58,13 @@
   <div class="cand" data-id="3"><input type="radio" name="cand" value="3"> <b>Kandidat 3 — Ahmad Fauzi (Dummy)</b><br><small>Visi dummy: perbaikan jalan komplek, penerangan, dan kas warga transparan.</small></div>
 
   <button id="voteBtn" onclick="submitVote()">Kirim Suara</button>
+  <div class="confirmBox" id="confirmBox">
+    <p id="confirmText"></p>
+    <div class="btnRow">
+      <button id="confirmYesBtn" onclick="confirmVote()">Ya, Kirim Suara</button>
+      <button class="btnSecondary" onclick="cancelConfirm()">Batal / Ubah Pilihan</button>
+    </div>
+  </div>
   <div id="msg" style="margin-top:12px"></div>
   <button id="nextBtn" onclick="resetForNextVoter()" style="background:#333;margin-top:12px;display:none">Pemilih Berikutnya — Bersihkan Layar</button>
 </div>
@@ -93,23 +113,61 @@ function showMsg(html, cls){
 
 // Hasil sementara sengaja TIDAK ditampilkan di halaman ini —
 // baru dibuka panitia setelah voting ditutup (lihat PANDUAN.md).
+// Konfirmasi pilihan tampil inline di halaman (bukan alert/confirm
+// bawaan browser), dan setelah vote berhasil tampil banner hijau
+// di atas halaman. Banner dan pesan sukses sengaja TIDAK menyebut
+// nama kandidat, supaya pilihan tidak terlihat pemilih berikutnya.
+function showBanner(){
+  const b = document.getElementById('doneBanner');
+  b.style.display = 'block';
+  b.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function hideBanner(){
+  document.getElementById('doneBanner').style.display = 'none';
+}
+function setFormEnabled(enabled){
+  document.getElementById('token').disabled = !enabled;
+  document.querySelectorAll('input[name="cand"]').forEach(r=>{ r.disabled = !enabled; });
+  document.getElementById('voteBtn').disabled = !enabled;
+}
+
 function resetForNextVoter(){
   document.getElementById('token').value = '';
   document.querySelectorAll('input[name="cand"]').forEach(r=>{ r.checked = false; });
   document.querySelectorAll('.cand').forEach(c=>c.classList.remove('selected'));
   document.getElementById('msg').innerHTML = '';
+  document.getElementById('confirmBox').style.display = 'none';
+  document.getElementById('voteBtn').style.display = 'block';
   document.getElementById('nextBtn').style.display = 'none';
+  hideBanner();
+  setFormEnabled(true);
   document.getElementById('token').focus();
 }
 
-async function submitVote(){
+function submitVote(){
   const token = document.getElementById('token').value.trim().toUpperCase();
   const chosen = document.querySelector('input[name="cand"]:checked');
   if(!token){ showMsg('Masukkan kode token rumah dulu.', 'err'); return; }
   if(!chosen){ showMsg('Pilih satu kandidat dulu.', 'err'); return; }
-  if(!confirm('Yakin memilih '+CANDIDATES[chosen.value]+'? Suara tidak bisa diubah setelah dikirim.')) return;
+  // Konfirmasi inline, bukan alert/confirm bawaan browser.
+  document.getElementById('confirmText').innerHTML =
+    'Anda memilih <b>'+CANDIDATES[chosen.value]+'</b>.<br>Suara tidak bisa diubah setelah dikirim. Yakin kirim suara ini?';
+  document.getElementById('confirmBox').style.display = 'block';
+  document.getElementById('voteBtn').style.display = 'none';
+  document.getElementById('confirmBox').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
 
-  const btn = document.getElementById('voteBtn'); btn.disabled = true; btn.textContent = 'Mengirim...';
+function cancelConfirm(){
+  document.getElementById('confirmBox').style.display = 'none';
+  document.getElementById('voteBtn').style.display = 'block';
+}
+
+async function confirmVote(){
+  const token = document.getElementById('token').value.trim().toUpperCase();
+  const chosen = document.querySelector('input[name="cand"]:checked');
+  if(!token || !chosen){ cancelConfirm(); return; }
+  document.getElementById('confirmBox').style.display = 'none';
+  const btn = document.getElementById('voteBtn'); btn.style.display = 'block'; btn.disabled = true; btn.textContent = 'Mengirim...';
   try{
     if(!BACKEND_URL){
       const used = JSON.parse(localStorage.getItem('rw_used')||'[]');
@@ -117,6 +175,8 @@ async function submitVote(){
       else{
         used.push(token); localStorage.setItem('rw_used', JSON.stringify(used));
         showMsg('<b>Suara tercatat (mode demo).</b> Terima kasih, suara Anda sudah dicatat di perangkat ini.', 'ok');
+        showBanner();
+        setFormEnabled(false);
         document.getElementById('nextBtn').style.display = 'block';
       }
     } else {
@@ -124,6 +184,8 @@ async function submitVote(){
       const j = await r.json();
       if(j.ok){
         showMsg('<b>Suara tercatat.</b> Terima kasih, pilihan Anda sudah diterima panitia.', 'ok');
+        showBanner();
+        setFormEnabled(false);
         document.getElementById('nextBtn').style.display = 'block';
       } else if(j.error==='already_voted'){
         showMsg('Kode ini sudah dipakai untuk memilih. Satu rumah satu suara.', 'err');
