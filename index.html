@@ -12,8 +12,9 @@
     (nama, inisial foto, visi, misi). Maksimal 5 kandidat supaya
     halaman tetap terbaca; tambah kandidat = tambah 1 entri di
     CANDIDATES dan 1 ID di Code.gs (array CANDIDATES di sana).
-  - Foto asli: ganti lingkaran inisial dengan <img> foto resmi
-    kandidat (rasio 1:1, ukuran sama untuk semua kandidat).
+  - Foto: saat ini foto dummy (lihat field "photo" di CANDIDATES);
+    ganti dengan foto resmi kandidat (rasio 1:1, ukuran sama
+    untuk semua kandidat) kalau sudah ada dari panitia.
   ============================================================
 -->
 <style>
@@ -29,7 +30,6 @@
   .hero{background:#1e2a78;color:#fff;border-radius:16px;padding:28px 22px;text-align:center;margin-bottom:16px}
   .hero h1{font-size:clamp(24px,5vw,36px);line-height:1.25;margin:0 0 6px;letter-spacing:.5px}
   .hero .periode{font-size:clamp(18px,3.5vw,24px);font-weight:700;margin:0}
-  .hero .sub{font-size:15px;color:#dbe2ff;margin:10px 0 0}
 
   .banner{display:none;background:#0a7a42;color:#fff;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.15)}
   .banner b{font-size:20px;display:block;margin-bottom:6px}
@@ -62,7 +62,10 @@
   @media (min-width:560px){ .cand{flex:1 1 240px} }
   .cand.selected{border-color:#0a7a42;background:#eefaf3}
   .cand input[type=radio]{position:absolute;opacity:0;pointer-events:none}
-  .avatar{width:96px;height:96px;border-radius:50%;color:#fff;font-size:40px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+  .avatar{width:96px;height:96px;border-radius:50%;color:#fff;font-size:40px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;position:relative;overflow:hidden}
+  /* Foto dummy kandidat menutupi lingkaran inisial; kalau foto
+     gagal dimuat, gambarnya hilang dan inisial muncul lagi. */
+  .avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
   .cand h3{font-size:21px;margin:0 0 4px}
   .cand .nomor{font-size:14px;font-weight:700;color:#4a5568;margin-bottom:12px}
   .visiMisi{background:#f2f4f8;border-radius:10px;padding:12px;text-align:left;font-size:15px;flex:1}
@@ -87,7 +90,6 @@
 
   footer{background:#17203a;color:#fff;border-radius:16px;padding:20px 22px;text-align:center;font-size:14px;line-height:1.7}
   footer b{font-size:15px}
-  footer .priv{color:#c6d0e8}
   details{font-size:15px;color:#4a5568}
   details summary{cursor:pointer;font-weight:700;color:#17203a}
 </style>
@@ -98,7 +100,6 @@
   <header class="hero">
     <h1>PEMILIHAN KETUA RW 19<br>KELURAHAN SUKAGALIH</h1>
     <p class="periode">Periode 2027 &ndash; 2032</p>
-    <p class="sub">Satu rumah, satu suara</p>
   </header>
 
   <div class="banner" id="doneBanner">
@@ -115,7 +116,7 @@
     <div id="voteForm">
       <div class="step"><span class="stepNum">1</span><div>
         <h2>Masukkan Token Pemilih</h2>
-        <p class="muted" style="margin:4px 0 0">Token ada di <b>undangan tertulis</b> yang dibagikan panitia ke tiap rumah (kertas, satu undangan per rumah). Bawa undangan itu ke bilik suara. Satu token hanya bisa dipakai satu kali.</p>
+        <p class="muted" style="margin:4px 0 0">Token ada di <b>undangan tertulis</b> yang dibagikan panitia ke tiap rumah (kertas, satu undangan per rumah). Satu token hanya bisa dipakai satu kali.</p>
       </div></div>
       <label for="token">Kode Token</label>
       <input type="text" id="token" placeholder="Contoh: STG-001" autocomplete="off" autocapitalize="characters">
@@ -129,9 +130,9 @@
 
       <div class="step" style="margin-top:6px"><span class="stepNum">3</span><div>
         <h2>Kirim Suara</h2>
-        <p class="muted" style="margin:4px 0 0">Periksa lagi pilihan Anda, lalu tekan tombol di bawah ini. Suara tidak bisa diubah setelah dikirim.</p>
+        <p class="muted" style="margin:4px 0 0">Periksa lagi pilihan Anda, lalu tekan tombol di bawah ini. Suara tidak bisa diubah setelah dikirim. Tombol aktif setelah token diisi dan kandidat dipilih.</p>
       </div></div>
-      <button id="voteBtn" onclick="submitVote()">&#10148; KIRIM SUARA</button>
+      <button id="voteBtn" onclick="submitVote()" disabled>&#10148; KIRIM SUARA</button>
       <div class="confirmBox" id="confirmBox">
         <p id="confirmText"></p>
         <div class="btnRow">
@@ -146,8 +147,7 @@
   </div>
 
   <footer>
-    <b>&copy; 2026 PANITIA PEMILIHAN KETUA RW 19 KELURAHAN SUKAGALIH</b><br>
-    <span class="priv">Pilihan Anda dicatat tanpa nama dan tanpa token, jadi pilihan tiap rumah tetap anonim. Panitia hanya bisa melihat siapa yang sudah memilih, bukan memilih siapa.</span>
+    <b>&copy; 2026 PANITIA PEMILIHAN KETUA RW 19 KELURAHAN SUKAGALIH</b>
   </footer>
 
 </div>
@@ -161,13 +161,16 @@ const BACKEND_URL = "";
 
 // Kandidat — MAKSIMAL 5. Tambah kandidat = tambah 1 entri di sini
 // (id baru, misal "3") + 1 ID di array CANDIDATES di Code.gs.
-// Foto: lingkaran di bawah ini berisi inisial; ganti dengan foto
-// resmi kandidat (rasio 1:1) kalau sudah ada dari panitia.
+// Foto: saat ini FOTO DUMMY dari randomuser.me — ganti field
+// "photo" dengan foto resmi kandidat (rasio 1:1) kalau sudah ada
+// dari panitia. Kalau foto gagal dimuat, inisial muncul lagi.
 const CANDIDATES = {
   1: {name: "Jauin", initials: "J", color: "#155eef",
+      photo: "https://randomuser.me/api/portraits/men/32.jpg",
       visi: "Membangun Kelurahan yang lebih maju",
       misi: "Meningkatkan layanan publik"},
   2: {name: "Tomo", initials: "T", color: "#0f766e",
+      photo: "https://randomuser.me/api/portraits/men/75.jpg",
       visi: "Mewujudkan kelurahan mandiri",
       misi: "Memberikan layanan yang berkualitas"},
 };
@@ -181,7 +184,7 @@ Object.keys(CANDIDATES).forEach(function(id){
   card.dataset.id = id;
   card.innerHTML =
     '<input type="radio" name="cand" value="' + id + '" tabindex="-1">' +
-    '<div class="avatar" style="background:' + c.color + '">' + c.initials + '</div>' +
+    '<div class="avatar" style="background:' + c.color + '">' + c.initials + '<img src="' + c.photo + '" alt="Foto ' + c.name + '" onerror="this.remove()"></div>' +
     '<h3></h3>' +
     '<div class="nomor">Kandidat ' + id + '</div>' +
     '<div class="visiMisi"><b>Visi</b><span class="visi"></span><b>Misi</b><span class="misi"></span></div>' +
@@ -193,6 +196,16 @@ Object.keys(CANDIDATES).forEach(function(id){
   candGrid.appendChild(card);
 });
 
+// Tombol KIRIM SUARA hanya aktif kalau token sudah diisi DAN
+// kandidat sudah dipilih. Dipanggil tiap token diketik, tiap
+// kandidat dipilih, dan tiap reset untuk pemilih berikutnya.
+function updateSendBtn(){
+  const token = document.getElementById('token').value.trim();
+  const chosen = document.querySelector('input[name="cand"]:checked');
+  document.getElementById('voteBtn').disabled = !(token && chosen);
+}
+document.getElementById('token').addEventListener('input', updateSendBtn);
+
 function selectCandidate(id){
   document.querySelectorAll('.cand').forEach(function(el){
     const isSel = el.dataset.id === String(id);
@@ -200,16 +213,20 @@ function selectCandidate(id){
     el.querySelector('input').checked = isSel;
     el.querySelector('.pickBtn').textContent = isSel ? '\u2713 Dipilih' : 'Pilih ' + CANDIDATES[el.dataset.id].name;
   });
+  updateSendBtn();
 }
 document.querySelectorAll('.cand').forEach(function(el){
   el.addEventListener('click', function(){ selectCandidate(el.dataset.id); });
 });
 
+// Kotak mode hanya tampil di mode demo (backend belum dihubungkan).
+// Kalau backend sudah terhubung, kotak ini disembunyikan — tidak
+// ada lagi tulisan "Mode voting asli" di halaman pemilih.
 const modeBox = document.getElementById('modeBox');
 if(!BACKEND_URL){
   modeBox.innerHTML = "<b>Mode demo / staging.</b> Backend belum dihubungkan, jadi suara di halaman ini hanya tersimpan di perangkat ini untuk dicoba. Ikuti <b>PANDUAN.md</b> untuk menghubungkan ke Google Sheet agar voting di bilik suara bisa berjalan.";
 } else {
-  modeBox.innerHTML = "<b>Mode voting asli.</b> Suara dikirim ke backend panitia dan satu token hanya bisa dipakai satu kali.";
+  modeBox.style.display = 'none';
 }
 
 function showMsg(html, cls){
@@ -282,6 +299,7 @@ function resetForNextVoter(){
   document.getElementById('nextBtn').style.display = 'none';
   hideBanner();
   setFormEnabled(true);
+  updateSendBtn();
   document.getElementById('token').focus();
 }
 
@@ -358,7 +376,7 @@ async function confirmVote(){
   // Kalau gagal, buka lagi kuncinya supaya pemilih bisa perbaiki
   // token / pilihan. Kalau berhasil, form sudah disembunyikan.
   if(!succeeded) setConfirmLock(false);
-  btn.disabled = false; btn.textContent = '\u27A4 KIRIM SUARA';
+  updateSendBtn(); btn.textContent = '\u27A4 KIRIM SUARA';
 }
 </script>
 </body>
