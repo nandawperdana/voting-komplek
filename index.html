@@ -19,7 +19,11 @@
 <style>
   *{box-sizing:border-box}
   body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;margin:0;padding:0;color:#17203a;background:#eef1f6;font-size:17px;line-height:1.6}
-  .wrap{max-width:880px;margin:0 auto;padding:16px 16px 32px}
+  /* Halaman dilebarkan khusus untuk tampilan browser laptop
+     (sebelumnya 880px, sekarang 1180px) supaya kartu kandidat
+     dan tombol tidak terlihat sempit di layar lebar. Di HP
+     tetap selebar layar karena width:100%. */
+  .wrap{max-width:1180px;width:100%;margin:0 auto;padding:24px 20px 40px}
 
   /* Header: indigo gelap + teks putih, kontras tinggi */
   .hero{background:#1e2a78;color:#fff;border-radius:16px;padding:28px 22px;text-align:center;margin-bottom:16px}
