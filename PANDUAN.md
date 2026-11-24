@@ -93,6 +93,11 @@ Panitia memantau dari Sheet.
   "Memberikan layanan yang berkualitas"). Judul halaman, periode
   (2027–2032) dan footer juga dari contoh itu — sesuaikan kalau
   RW / kelurahan / periodenya berbeda.
+- **Sementara untuk testing tampilan ada 3 kandidat dummy
+  tambahan (3 = Dewi Lestari, 4 = Agus Prasetyo, 5 = Maya Kusuma)
+  sehingga total 5 orang.** Hapus / ganti ketiganya dengan
+  kandidat resmi sebelum voting asli — di `index.html` (array
+  `CANDIDATES`) dan di `Code.gs` (array `CANDIDATES`).
 - Di `index.html`: tambah / ubah 1 entri di array `CANDIDATES`
   di `<script>` (nama, inisial, warna, foto, visi, misi). Kartu
   kandidat dibuat otomatis dari array itu; layout-nya flex-wrap
