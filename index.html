@@ -62,11 +62,10 @@
   .visiMisi{background:#f2f4f8;border-radius:10px;padding:12px;text-align:left;font-size:15px;flex:1}
   .visiMisi b{display:block;font-size:15px;margin-top:8px}
   .visiMisi b:first-child{margin-top:0}
-  .picked{display:none;margin-top:14px;background:#0a7a42;color:#fff;font-weight:800;border-radius:999px;padding:8px 14px;font-size:15px}
-  .cand.selected .picked{display:inline-block}
-  /* Kartu yang terpilih cukup menampilkan badge "Dipilih" saja —
-     tombol "Pilih ..." disembunyikan supaya tidak dobel. */
-  .cand.selected .pickBtn{display:none}
+  /* Satu-satunya penanda "Dipilih" adalah tombol Pilih itu sendiri:
+     teksnya berubah jadi "✓ Dipilih" dan warnanya jadi hijau saat
+     kartunya terpilih. Jangan tambah badge kedua — dulu badge +
+     tombol tampil berbarengan dan membingungkan. */
   .pickBtn{margin-top:14px;width:100%;padding:12px;border:0;border-radius:999px;background:#1e2a78;color:#fff;font-size:16px;font-weight:700;cursor:pointer}
   .cand.selected .pickBtn{background:#0a7a42}
 
@@ -197,7 +196,6 @@ Object.keys(CANDIDATES).forEach(function(id){
     '<h3></h3>' +
     '<div class="nomor">Kandidat ' + id + '</div>' +
     '<div class="visiMisi"><b>Visi</b><span class="visi"></span><b>Misi</b><span class="misi"></span></div>' +
-    '<span class="picked">&#10003; Dipilih</span>' +
     '<button type="button" class="pickBtn"></button>';
   card.querySelector('h3').textContent = c.name;
   card.querySelector('.visi').textContent = '\u201C' + c.visi + '\u201D';
