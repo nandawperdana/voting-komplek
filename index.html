@@ -48,12 +48,14 @@
   input[type=text]:focus{outline:3px solid #1e2a78;outline-offset:1px;border-color:#1e2a78}
   .hint{font-size:14px;color:#4a5568;margin-top:6px}
 
-  /* Grid kandidat: 1 kolom di HP, 2 di tablet, 3 di desktop.
-     Maksimal 5 kandidat (3+2 di desktop) supaya tetap terbaca. */
-  .candGrid{display:grid;grid-template-columns:1fr;gap:16px;margin:16px 0}
-  @media (min-width:560px){ .candGrid{grid-template-columns:1fr 1fr} }
-  @media (min-width:820px){ .candGrid{grid-template-columns:1fr 1fr 1fr} }
-  .cand{border:3px solid #d7dce6;border-radius:16px;padding:20px 16px;cursor:pointer;text-align:center;background:#fff;display:flex;flex-direction:column}
+  /* Kartu kandidat pakai flex-wrap supaya SELALU memenuhi lebar,
+     berapapun jumlah kandidatnya: 1 kandidat = selebar penuh,
+     2 kandidat = setengah-setengah, 5 kandidat = 3 di baris
+     pertama + 2 kartu di baris kedua yang melebar memenuhi lebar.
+     Maksimal 5 kandidat supaya tetap terbaca. */
+  .candGrid{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0}
+  .cand{flex:1 1 100%;border:3px solid #d7dce6;border-radius:16px;padding:20px 16px;cursor:pointer;text-align:center;background:#fff;display:flex;flex-direction:column}
+  @media (min-width:560px){ .cand{flex:1 1 240px} }
   .cand.selected{border-color:#0a7a42;background:#eefaf3}
   .cand input[type=radio]{position:absolute;opacity:0;pointer-events:none}
   .avatar{width:96px;height:96px;border-radius:50%;color:#fff;font-size:40px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
@@ -92,7 +94,7 @@
   <header class="hero">
     <h1>PEMILIHAN KETUA RW 19<br>KELURAHAN SUKAGALIH</h1>
     <p class="periode">Periode 2027 &ndash; 2032</p>
-    <p class="sub">Satu rumah, satu suara &bull; Voting di bilik suara, di perangkat panitia</p>
+    <p class="sub">Satu rumah, satu suara</p>
   </header>
 
   <div class="banner" id="doneBanner">
