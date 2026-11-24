@@ -2,7 +2,9 @@
 
 Spek yang sudah disepakati (update 2026-11-24): kurleb 200 pemilih,
 satu suara per rumah, panitia boleh tahu siapa yang sudah memilih
-(tapi bukan pilihannya), 3 kandidat dummy untuk sekarang.
+(tapi bukan pilihannya). Kandidat saat ini 2 orang dari contoh
+desain panitia (Jauin dan Tomo) — ganti / tambah sampai maksimal
+5 orang sesuai keputusan panitia, lihat "Ganti / tambah kandidat".
 
 Perubahan dari rencana awal (remote lewat link WA):
 - **Voting dilakukan di bilik suara.** Pemilih / perwakilan rumah
@@ -73,14 +75,26 @@ Panitia memantau dari Sheet.
   pakai halaman dengan `BACKEND_URL` terisi (langkah 6) di perangkat
   bilik suara.
 
-## Ganti kandidat dummy
+## Ganti / tambah kandidat (maksimal 5)
 
-- Di `index.html`: ganti nama + visi Kandidat 1–3, dan label di
-  `CANDIDATES`.
-- Di `Code.gs`: ID kandidat tetap `1`, `2`, `3` — tidak perlu diubah
-  kalau jumlah kandidat tetap 3. Kalau kandidat jadi bukan 3 orang,
-  ubah juga array `CANDIDATES` di `Code.gs` dan kartu kandidat di
-  `index.html`.
+- Kandidat saat ini (dari contoh desain panitia): **1 = Jauin**
+  ("Membangun Kelurahan yang lebih maju" / "Meningkatkan layanan
+  publik") dan **2 = Tomo** ("Mewujudkan kelurahan mandiri" /
+  "Memberikan layanan yang berkualitas"). Judul halaman, periode
+  (2027–2032) dan footer juga dari contoh itu — sesuaikan kalau
+  RW / kelurahan / periodenya berbeda.
+- Di `index.html`: tambah / ubah 1 entri di array `CANDIDATES`
+  di `<script>` (nama, inisial, warna, visi, misi). Kartu kandidat
+  dibuat otomatis dari array itu; grid-nya 1 kolom di HP, 2 di
+  tablet, 3 di desktop. **Maksimal 5 kandidat** supaya halaman
+  tetap terbaca dan kandidat bawah tidak terlewat.
+- Di `Code.gs`: samakan ID-nya di array `CANDIDATES` (misal tambah
+  `'3'` kalau kandidat ke-3 ditambahkan). Halaman hanya mengirim
+  ID kandidat; `Hasil_Suara` menyimpan ID itu saja.
+- Foto: kartu saat ini memakai lingkaran inisial. Kalau panitia
+  punya foto resmi kandidat, ganti lingkaran itu dengan `<img>`
+  (rasio 1:1, ukuran sama untuk semua kandidat) dan minta izin
+  pemakaian fotonya ke kandidat.
 
 ## Di hari voting (bilik suara)
 

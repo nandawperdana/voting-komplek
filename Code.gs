@@ -12,7 +12,10 @@
 const TOKEN_SHEET = 'Daftar_Token';
 const RESULT_SHEET = 'Hasil_Suara';
 const STATUS_SHEET = 'Status'; // A1: header "Status", A2: "Berjalan" atau "Ditutup"
-const CANDIDATES = ['1', '2', '3']; // 1=Budi Santoso (Dummy), 2=Siti Rahma (Dummy), 3=Ahmad Fauzi (Dummy)
+const CANDIDATES = ['1', '2', '3']; // 1=Jauin, 2=Tomo (3 tidak dipakai saat ini).
+// Kalau kandidat ditambah/diganti, samakan ID-nya dengan entri
+// CANDIDATES di index.html. Halaman kirim ID-nya; Hasil_Suara
+// hanya menyimpan ID itu, jadi panitia harus tahu ID = siapa.
 
 // Status voting, dibaca dari sheet "Status" (A2).
 // Panitia menutup voting dengan mengubah A2 jadi "Ditutup" —
