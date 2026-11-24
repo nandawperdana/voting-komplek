@@ -13,6 +13,12 @@ const TOKEN_SHEET = 'Daftar_Token';
 const RESULT_SHEET = 'Hasil_Suara';
 const CANDIDATES = ['1', '2', '3']; // 1=Budi Santoso (Dummy), 2=Siti Rahma (Dummy), 3=Ahmad Fauzi (Dummy)
 
+// Ketentuan 2026-11-24: hasil sementara TIDAK boleh dilihat warga
+// selama voting berjalan. Biarkan false selama voting; panitia boleh
+// mengubah ke true (lalu deploy ulang) SETELAH voting ditutup, atau
+// cukup membaca rekap langsung dari sheet Hasil_Suara.
+const RESULTS_PUBLIC = false;
+
 // Jalankan sekali dari editor Apps Script untuk menyiapkan header sheet.
 function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -25,9 +31,13 @@ function setup() {
 }
 
 // GET ?action=results -> hanya rekap jumlah, tanpa identitas pemilih.
+// Dikunci selama voting berjalan (RESULTS_PUBLIC = false).
 function doGet(e) {
   const action = e && e.parameter ? e.parameter.action : '';
   if (action === 'results') {
+    if (!RESULTS_PUBLIC) {
+      return json({ ok: false, error: 'results_hidden_until_closed' });
+    }
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const r = ss.getSheetByName(RESULT_SHEET);
     const tally = { '1': 0, '2': 0, '3': 0 };

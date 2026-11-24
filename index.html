@@ -27,13 +27,13 @@
 
 <div class="card">
   <h1>Pemilihan Ketua RW</h1>
-  <p class="muted">Satu rumah, satu suara. Panitia bisa melihat <b>siapa yang sudah memilih</b> (dari daftar token), tapi <b>tidak bisa melihat pilihan</b> masing-masing rumah — pilihan dicatat terpisah tanpa token.</p>
+  <p class="muted">Satu rumah, satu suara. Voting dilakukan di <b>bilik suara</b>, di perangkat yang disediakan panitia, pada hari dan jam yang ditentukan. Panitia bisa melihat <b>siapa yang sudah memilih</b> (dari daftar token), tapi <b>tidak bisa melihat pilihan</b> masing-masing rumah — pilihan dicatat terpisah tanpa token.</p>
   <div id="modeBox" class="note"></div>
 </div>
 
 <div class="card" id="voteCard">
   <h2>1. Masukkan Kode Rumah</h2>
-  <p class="muted">Kode ini dibagikan panitia per rumah, misalnya lewat WA. Satu kode hanya bisa dipakai satu kali.</p>
+  <p class="muted">Kode ini ada di <b>undangan tertulis</b> yang dibagikan panitia ke tiap rumah (kertas, satu undangan per rumah). Bawa undangan itu ke bilik suara. Satu kode hanya bisa dipakai satu kali.</p>
   <label for="token">Kode Token</label>
   <input type="text" id="token" placeholder="Contoh: RW-001-XXXXXX" autocomplete="off">
 
@@ -46,21 +46,21 @@
 
   <button id="voteBtn" onclick="submitVote()">Kirim Suara</button>
   <div id="msg" style="margin-top:12px"></div>
+  <button id="nextBtn" onclick="resetForNextVoter()" style="background:#333;margin-top:12px;display:none">Pemilih Berikutnya — Bersihkan Layar</button>
 </div>
 
 <div class="card">
-  <h2>Hasil Sementara</h2>
-  <p class="muted" id="resultNote">Di mode demo, hasil dihitung dari perangkat ini saja. Setelah terhubung ke backend Google Sheet, hasil di sini adalah rekap gabungan semua warga.</p>
-  <div id="results"></div>
-  <button onclick="loadResults()" style="background:#333;margin-top:8px">Perbarui Hasil</button>
+  <h2>Hasil Voting</h2>
+  <p class="muted">Hasil <b>tidak ditampilkan</b> di halaman ini selama voting berjalan. Hasil baru dibuka panitia <b>setelah voting ditutup</b>, dari rekap di Google Sheet (<code>Hasil_Suara</code>).</p>
 </div>
 
 <div class="card">
   <h2>Untuk Panitia</h2>
-  <p class="muted">1) Bagikan satu token per rumah dari file <code>token_rumah_200.csv</code>.<br>
-  2) Di Google Sheet, sheet <code>Daftar_Token</code> menunjukkan token mana yang sudah dipakai.<br>
-  3) Sheet <code>Hasil_Suara</code> hanya berisi pilihan, tanpa token — jadi pilihan tiap rumah tetap anonim.<br>
-  4) Jangan bagikan token orang lain, dan jangan ubah sheet Hasil_Suara secara manual selama voting berjalan.</p>
+  <p class="muted">1) Bagikan satu token per rumah lewat <b>undangan tertulis</b> (kertas) — satu undangan per rumah, dari file <code>token_rumah_200.csv</code>. Daftar rumah masih <b>belum final</b>, jadi jangan cetak undangan sebelum daftar final.<br>
+  2) Pemilih datang ke bilik suara dan voting di perangkat panitia. Setelah satu pemilih selesai, tekan <b>"Pemilih Berikutnya — Bersihkan Layar"</b> supaya token dan pilihan pemilih sebelumnya tidak terlihat pemilih berikutnya.<br>
+  3) Di Google Sheet, sheet <code>Daftar_Token</code> menunjukkan token mana yang sudah dipakai.<br>
+  4) Sheet <code>Hasil_Suara</code> hanya berisi pilihan, tanpa token — jadi pilihan tiap rumah tetap anonim. Jangan buka / umumkan hasil sementara selama voting berjalan.<br>
+  5) Jangan bagikan token orang lain, dan jangan ubah sheet Hasil_Suara secara manual selama voting berjalan.</p>
 </div>
 
 <script>
@@ -81,7 +81,7 @@ document.querySelectorAll('.cand').forEach(el=>{
 
 const modeBox = document.getElementById('modeBox');
 if(!BACKEND_URL){
-  modeBox.innerHTML = "<b>Mode demo.</b> Backend belum dihubungkan, jadi suara di halaman ini hanya tersimpan di perangkat ini untuk dicoba. Ikuti <b>PANDUAN.md</b> untuk menghubungkan ke Google Sheet agar 200 warga bisa voting lewat link WA yang sama.";
+  modeBox.innerHTML = "<b>Mode demo / staging.</b> Backend belum dihubungkan, jadi suara di halaman ini hanya tersimpan di perangkat ini untuk dicoba. Ikuti <b>PANDUAN.md</b> untuk menghubungkan ke Google Sheet agar voting di bilik suara bisa berjalan.";
 } else {
   modeBox.innerHTML = "<b>Mode voting asli.</b> Suara dikirim ke backend panitia dan satu token hanya bisa dipakai satu kali.";
 }
@@ -91,30 +91,15 @@ function showMsg(html, cls){
   m.innerHTML = '<div class="'+cls+'">'+html+'</div>';
 }
 
-function localTally(){
-  try { return JSON.parse(localStorage.getItem('rw_tally')||'{"1":0,"2":0,"3":0}'); }
-  catch(e){ return {"1":0,"2":0,"3":0}; }
-}
-function renderResults(tally, totalVoted){
-  const total = (tally[1]+tally[2]+tally[3]) || 0;
-  let html = '';
-  [1,2,3].forEach(id=>{
-    const n = tally[id]||0;
-    const pct = total ? Math.round(n/total*100) : 0;
-    html += '<b>'+CANDIDATES[id]+'</b> — '+n+' suara ('+pct+'%)<div class="bar"><div style="width:'+pct+'%"></div></div>';
-  });
-  html += '<p class="muted">Total suara masuk: '+total+(totalVoted!=null ? ' dari 200 rumah' : '')+'</p>';
-  document.getElementById('results').innerHTML = html;
-}
-
-async function loadResults(){
-  if(!BACKEND_URL){ renderResults(localTally()); return; }
-  try{
-    const r = await fetch(BACKEND_URL+'?action=results');
-    const j = await r.json();
-    if(j.ok) renderResults(j.tally, j.voted);
-    else renderResults(localTally());
-  }catch(e){ renderResults(localTally()); }
+// Hasil sementara sengaja TIDAK ditampilkan di halaman ini —
+// baru dibuka panitia setelah voting ditutup (lihat PANDUAN.md).
+function resetForNextVoter(){
+  document.getElementById('token').value = '';
+  document.querySelectorAll('input[name="cand"]').forEach(r=>{ r.checked = false; });
+  document.querySelectorAll('.cand').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('msg').innerHTML = '';
+  document.getElementById('nextBtn').style.display = 'none';
+  document.getElementById('token').focus();
 }
 
 async function submitVote(){
@@ -131,16 +116,15 @@ async function submitVote(){
       if(used.includes(token)){ showMsg('Kode ini sudah dipakai di perangkat ini (mode demo).', 'err'); }
       else{
         used.push(token); localStorage.setItem('rw_used', JSON.stringify(used));
-        const t = localTally(); t[chosen.value]++; localStorage.setItem('rw_tally', JSON.stringify(t));
-        showMsg('<b>Suara tercatat (mode demo).</b> Terima kasih, suara untuk '+CANDIDATES[chosen.value]+' sudah dicatat di perangkat ini.', 'ok');
-        renderResults(t);
+        showMsg('<b>Suara tercatat (mode demo).</b> Terima kasih, suara Anda sudah dicatat di perangkat ini.', 'ok');
+        document.getElementById('nextBtn').style.display = 'block';
       }
     } else {
       const r = await fetch(BACKEND_URL, {method:'POST', body: JSON.stringify({token: token, choice: chosen.value})});
       const j = await r.json();
       if(j.ok){
         showMsg('<b>Suara tercatat.</b> Terima kasih, pilihan Anda sudah diterima panitia.', 'ok');
-        loadResults();
+        document.getElementById('nextBtn').style.display = 'block';
       } else if(j.error==='already_voted'){
         showMsg('Kode ini sudah dipakai untuk memilih. Satu rumah satu suara.', 'err');
       } else if(j.error==='invalid_token'){
@@ -154,7 +138,6 @@ async function submitVote(){
   }
   btn.disabled = false; btn.textContent = 'Kirim Suara';
 }
-loadResults();
 </script>
 </body>
 </html>
