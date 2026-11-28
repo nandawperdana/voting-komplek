@@ -26,6 +26,11 @@ Panitia memantau dari Sheet.
 
 - `index.html` — halaman voting (mobile-friendly, dibuka di perangkat bilik suara)
 - `Code.gs` — backend Apps Script
+- `config.js` — konfigurasi demo (mode & alamat backend). Repo publik hanya
+  berisi versi demo. Untuk bilik suara jangan edit ini; pakai
+  `config.live.example.js`.
+- `config.live.example.js` — template konfigurasi live. Salin sebagai
+  `config.js` di folder bilik (folder TIDAK di-commit ke repo publik).
 - `token_rumah_200.csv` — 200 token, satu per rumah (Rumah 001–200)
   — **DRAFT, daftar rumah masih BELUM FINAL (2026-11-24).**
   Jangan cetak undangan dari file ini sebelum daftar rumah final.
@@ -51,9 +56,13 @@ Panitia memantau dari Sheet.
    pilih Web app → Execute as: Me → Who has access: Anyone →
    Deploy. Copy URL Web App-nya (diawali
    `https://script.google.com/macros/s/.../exec`).
-6. **Hubungkan halaman voting:** buka `index.html`, cari baris
-   `const BACKEND_URL = "";` di bagian atas script, isi dengan URL
-   dari langkah 5, lalu simpan.
+6. **Hubungkan halaman voting lewat `config.js`:** halaman membaca mode
+   dan alamat backend dari file `config.js` (satu folder dengan
+   `index.html`). Untuk bilik suara: salin `config.live.example.js`
+   menjadi `config.js` di folder bilik, lalu isi `backendUrl` dengan
+   URL dari langkah 5 dan pastikan `mode` tetap `'live'`. Kalau
+   `backendUrl` kosong, halaman menampilkan "Halaman belum
+   dikonfigurasi" dan form diblokir (tidak jatuh ke mode demo).
 7. **Siapkan perangkat bilik suara:** buka `index.html` di perangkat
    panitia (laptop / tablet di bilik suara). Untuk staging / testing
    ke panitia, pakai versi staging di URL publik — lihat bagian
@@ -70,11 +79,11 @@ Panitia memantau dari Sheet.
 
 ## Versi staging
 
-- Versi staging = halaman yang sama (`index.html`) tapi
-  `BACKEND_URL`-nya diarahkan ke backend staging (Sheet "Voting
-  Ketua RW — Staging", token STG-001–STG-010), di-host di URL
-  publik untuk testing panitia. Suara di staging masuk ke Sheet
-  staging, bukan Sheet produksi.
+- Versi staging = halaman yang sama (`index.html`) tapi `config.js`-nya
+  memakai `mode: 'demo'` + `backendUrl` diisi URL backend staging
+  (Sheet "Voting Ketua RW — Staging", token STG-001–STG-010), di-host
+  di URL publik untuk testing panitia. Penanda pojok layar menampilkan
+  STAGING. Suara di staging masuk ke Sheet staging, bukan Sheet produksi.
 - **Setiap kali `Code.gs` berubah (misal endpoint baru
   `?action=check` untuk verifikasi token), backend staging harus
   di-deploy ulang** — di Apps Script Deploy → Manage deployments →
@@ -82,8 +91,8 @@ Panitia memantau dari Sheet.
   tetap sama. Kalau tidak, halaman staging tetap memakai backend
   lama dan tombol "Lanjutkan" akan gagal memeriksa token.
 - Jangan pakai URL staging untuk voting asli — voting asli harus
-  pakai halaman dengan `BACKEND_URL` produksi (langkah 6) di
-  perangkat bilik suara.
+  pakai halaman dengan `config.js` versi live (`mode: 'live'` +
+  `backendUrl` produksi) di perangkat bilik suara (langkah 6).
 
 ## Ganti / tambah kandidat (maksimal 5)
 

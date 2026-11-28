@@ -12,7 +12,7 @@
 const TOKEN_SHEET = 'Daftar_Token';
 const RESULT_SHEET = 'Hasil_Suara';
 const STATUS_SHEET = 'Status'; // A1: header "Status", A2: "Berjalan" atau "Ditutup"
-const CANDIDATES = ['1', '2', '3', '4', '5']; // 1=Jauin, 2=Tomo, 3-5 dummy sementara (Dewi, Agus, Maya) — hapus/ganti sebelum voting asli.
+const CANDIDATES = ['1', '2']; // 1=Ichsan Slamet Rahayu, 2=Kotak Kosong
 // Kalau kandidat ditambah/diganti, samakan ID-nya dengan entri
 // CANDIDATES di index.html. Halaman kirim ID-nya; Hasil_Suara
 // hanya menyimpan ID itu, jadi panitia harus tahu ID = siapa.
@@ -53,6 +53,29 @@ function setup() {
   }
 }
 
+// RESET DATA (manual, dari editor Apps Script).
+// HAPUS semua isi Daftar_Token & Hasil_Suara, lalu kembalikan Status
+// ke "Berjalan". Setelah ini, isi Daftar_Token dengan token baru:
+// paste isi token_gsi_200.csv mulai sel A2 (atau File > Import).
+// JANGAN jalankan saat hari-H / setelah ada suara asli — data hilang.
+function resetSheets() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let t = ss.getSheetByName(TOKEN_SHEET);
+  if (!t) t = ss.insertSheet(TOKEN_SHEET);
+  t.clear();
+  t.appendRow(['Token', 'Rumah', 'Sudah_Memilih', 'Waktu_Memilih']);
+  let r = ss.getSheetByName(RESULT_SHEET);
+  if (!r) r = ss.insertSheet(RESULT_SHEET);
+  r.clear();
+  r.appendRow(['Waktu', 'Pilihan']);
+  let s = ss.getSheetByName(STATUS_SHEET);
+  if (!s) s = ss.insertSheet(STATUS_SHEET);
+  s.clear();
+  s.appendRow(['Status', 'Keterangan']);
+  s.getRange('A2').setValue('Berjalan');
+  s.getRange('B2').setValue('Ubah A2 jadi "Ditutup" untuk menutup voting.');
+}
+
 // GET ?action=status -> {ok:true, status:"Berjalan"|"Ditutup"}
 // GET ?action=check&token=STG-001 -> {ok:true, valid:true} kalau token
 // ada dan belum dipakai; {ok:false, error:'invalid_token' |
@@ -61,15 +84,20 @@ function setup() {
 // GET ?action=results -> hanya rekap jumlah, tanpa identitas pemilih.
 // Dikunci selama voting berjalan (RESULTS_PUBLIC = false), dan
 // otomatis terbuka begitu status di sheet "Status" jadi "Ditutup".
+// Token dinormalisasi: hanya huruf/angka, kapital. "kmr-tbz", "KMR TBZ" dan
+// "KMRTBZ" dianggap sama (frontend memakai aturan yang sama). Dipakai untuk
+// input DAN isi sheet, jadi token di sheet boleh ditulis "KMR-TBZ" atau "KMRTBZ".
+function normToken(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+
 function checkToken(ss, token) {
-  token = String(token || '').trim().toUpperCase();
+  token = normToken(token);
   if (!token) return json({ ok: false, error: 'invalid_token' });
   if (getStatus(ss) === 'Ditutup') return json({ ok: false, error: 'voting_closed' });
   const t = ss.getSheetByName(TOKEN_SHEET);
   if (!t) return json({ ok: false, error: 'token_sheet_missing' });
   const rows = t.getDataRange().getValues();
   for (let i = 1; i < rows.length; i++) {
-    if (String(rows[i][0]).trim().toUpperCase() === token) {
+    if (normToken(rows[i][0]) === token) {
       if (String(rows[i][2]).toUpperCase() === 'YA') {
         return json({ ok: false, error: 'already_voted' });
       }
@@ -93,7 +121,8 @@ function doGet(e) {
       return json({ ok: false, error: 'results_hidden_until_closed' });
     }
     const r = ss.getSheetByName(RESULT_SHEET);
-    const tally = { '1': 0, '2': 0, '3': 0 };
+    const tally = {};
+    CANDIDATES.forEach(function (id) { tally[id] = 0; });
     if (r && r.getLastRow() > 1) {
       const vals = r.getRange(2, 2, r.getLastRow() - 1, 1).getValues();
       vals.forEach(function (row) {
@@ -119,7 +148,7 @@ function doPost(e) {
   try { lock.waitLock(10000); } catch (err) { return json({ ok: false, error: 'busy' }); }
   try {
     const data = JSON.parse(e.postData.contents);
-    const token = String(data.token || '').trim().toUpperCase();
+    const token = normToken(data.token);
     const choice = String(data.choice || '').trim();
     if (!token || CANDIDATES.indexOf(choice) === -1) {
       return json({ ok: false, error: 'invalid_input' });
@@ -134,19 +163,20 @@ function doPost(e) {
     const rows = t.getDataRange().getValues();
     let rowIndex = -1;
     for (let i = 1; i < rows.length; i++) {
-      if (String(rows[i][0]).trim().toUpperCase() === token) { rowIndex = i + 1; break; }
+      if (normToken(rows[i][0]) === token) { rowIndex = i + 1; break; }
     }
     if (rowIndex === -1) return json({ ok: false, error: 'invalid_token' });
     if (String(rows[rowIndex - 1][2]).toUpperCase() === 'YA') {
       return json({ ok: false, error: 'already_voted' });
     }
 
+    const r = ss.getSheetByName(RESULT_SHEET);
+    if (!r) return json({ ok: false, error: 'result_sheet_missing' });
+
     const now = new Date();
     t.getRange(rowIndex, 3).setValue('YA');
     t.getRange(rowIndex, 4).setValue(now);
 
-    const r = ss.getSheetByName(RESULT_SHEET);
-    if (!r) return json({ ok: false, error: 'result_sheet_missing' });
     // Sengaja TANPA token / rumah, supaya pilihan anonim.
     r.appendRow([now, choice]);
 

@@ -1,0 +1,5 @@
+# Daftar token pemilih = kredensial suara. Jangan pernah di-commit.
+token_*.csv
+
+# macOS
+.DS_Store
